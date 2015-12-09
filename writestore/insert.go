@@ -189,6 +189,6 @@ func (w *InsertStore) read(f *os.File, i, j int, ch tableview.TableView) {
 				panic("Invalid data type")
 			}
 		}
-		ch <- tableview.TableViewRow{data}
+		ch <- data
 	}
 }

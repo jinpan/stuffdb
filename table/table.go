@@ -122,7 +122,7 @@ func (t *Table) Scan(columns ...int) tableview.TableView {
 				row[idx] = <-cols[idx]
 			}
 
-			ch <- tableview.TableViewRow{row}
+			ch <- row
 		}
 
 		// consult the insert store
@@ -131,9 +131,9 @@ func (t *Table) Scan(columns ...int) tableview.TableView {
 
 			row := make([]interface{}, len(columns))
 			for idx, col_idx := range columns {
-				row[idx] = insert_store_row.Data[col_idx]
+				row[idx] = insert_store_row[col_idx]
 			}
-			ch <- tableview.TableViewRow{row}
+			ch <- row
 		}
 
 		close(ch)
@@ -158,7 +158,7 @@ func (t *Table) Insert(row []interface{}) error {
 		count := 0
 		for row := range t.insert_store.ReadAll() {
 			for i := 0; i < t.Schema.GetLen(); i++ {
-				cache[i][count] = row.Data[i]
+				cache[i][count] = row[i]
 			}
 			count++
 		}

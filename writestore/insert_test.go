@@ -105,14 +105,14 @@ func TestWriteRead(t *testing.T) {
 		t.Errorf(read_err.Error())
 	}
 	for record := range ch {
-		if record.Data[0].(int64) != int64(count) {
-			t.Errorf("Expected %d, got %d", count, record.Data[0].(int64))
+		if record[0].(int64) != int64(count) {
+			t.Errorf("Expected %d, got %d", count, record[0].(int64))
 		}
-		if record.Data[1].(int64) != int64(2*count) {
-			t.Errorf("Expected %d, got %d", 2*count, record.Data[0].(int64))
+		if record[1].(int64) != int64(2*count) {
+			t.Errorf("Expected %d, got %d", 2*count, record[0].(int64))
 		}
-		if len(record.Data) != schema.GetLen() {
-			t.Errorf("Expected a length of %d, got %d", schema.GetLen, len(record.Data))
+		if len(record) != schema.GetLen() {
+			t.Errorf("Expected a length of %d, got %d", schema.GetLen, len(record))
 		}
 		count++
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/jinpan/stuffdb/datatypes"
+	"github.com/jinpan/stuffdb/settings"
 )
 
 /*
@@ -15,10 +16,6 @@ import (
 	For a given table's column, there can be several physical columns
 	representing multiple banks that may be
 */
-
-const (
-	physical_int64_batch_size = 512 // 4096B page / (8B / int64)
-)
 
 type PhysicalInt64 struct {
 	filename string
@@ -145,8 +142,8 @@ func (p *PhysicalInt64) Read(i, j int) (<-chan interface{}, error) {
 	n_records := j - i
 	datum_size := datatypes.INT64_TYPE.GetSize()
 
-	buf := make([]byte, datum_size*physical_int64_batch_size)
-	data := make([]int64, physical_int64_batch_size)
+	buf := make([]byte, datum_size*settings.BatchSize)
+	data := make([]int64, settings.BatchSize)
 
 	ch := make(chan interface{}, 1024)
 
@@ -182,15 +179,15 @@ func (p *PhysicalInt64) Read(i, j int) (<-chan interface{}, error) {
 		}
 
 		var k int
-		for k = 0; k < n_records/physical_int64_batch_size; k++ {
-			amount_bytes := physical_int64_batch_size * datum_size
-			offset_bytes := (i + k*physical_int64_batch_size) * datum_size
+		for k = 0; k < n_records/settings.BatchSize; k++ {
+			amount_bytes := settings.BatchSize * datum_size
+			offset_bytes := (i + k*settings.BatchSize) * datum_size
 
 			read_fun(amount_bytes, offset_bytes)
 		}
-		if n_records%physical_int64_batch_size != 0 {
-			amount_bytes := (n_records % physical_int64_batch_size) * datum_size
-			offset_bytes := (i + k*physical_int64_batch_size) * datum_size
+		if n_records%settings.BatchSize != 0 {
+			amount_bytes := (n_records % settings.BatchSize) * datum_size
+			offset_bytes := (i + k*settings.BatchSize) * datum_size
 
 			read_fun(amount_bytes, offset_bytes)
 		}

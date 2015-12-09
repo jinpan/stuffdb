@@ -82,14 +82,14 @@ func TestCreateTable(t *testing.T) {
 
 		row_count := 0
 		for tr := range tv {
-			if len(tr.Data) != 2 {
-				t.Errorf("Expected data length to be 2, got %d", len(tr.Data))
+			if len(tr) != 2 {
+				t.Errorf("Expected data length to be 2, got %d", len(tr))
 			}
-			if tr.Data[0] != int64(row_count) {
-				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr.Data[0])
+			if tr[0] != int64(row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr[0])
 			}
-			if tr.Data[1] != int64(2*row_count) {
-				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr.Data[1])
+			if tr[1] != int64(2*row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr[1])
 			}
 
 			row_count++
@@ -126,14 +126,14 @@ func TestLoad(t *testing.T) {
 
 		row_count := 0
 		for tr := range tv {
-			if len(tr.Data) != 2 {
-				t.Errorf("Expected data length to be 2, got %d", len(tr.Data))
+			if len(tr) != 2 {
+				t.Errorf("Expected data length to be 2, got %d", len(tr))
 			}
-			if tr.Data[0] != int64(row_count) {
-				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr.Data[0])
+			if tr[0] != int64(row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr[0])
 			}
-			if tr.Data[1] != int64(2*row_count) {
-				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr.Data[1])
+			if tr[1] != int64(2*row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr[1])
 			}
 
 			row_count++
@@ -148,14 +148,14 @@ func TestLoad(t *testing.T) {
 
 		row_count = 0
 		for tr := range tv {
-			if len(tr.Data) != 2 {
-				t.Errorf("Expected data length to be 2, got %d", len(tr.Data))
+			if len(tr) != 2 {
+				t.Errorf("Expected data length to be 2, got %d", len(tr))
 			}
-			if tr.Data[0] != int64(row_count) {
-				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr.Data[0])
+			if tr[0] != int64(row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr[0])
 			}
-			if tr.Data[1] != int64(2*row_count) {
-				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr.Data[1])
+			if tr[1] != int64(2*row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr[1])
 			}
 
 			row_count++
