@@ -16,19 +16,20 @@ func TestFilter(t *testing.T) {
 		defer close(input)
 
 		for i := int64(0); i < int64(n_records); i++ {
-			input <- []interface{}{
-				0,
-				int64(i),
+			input <- TableViewRows{
+				TableViewRow{0, int64(i)},
 			}
 		}
 	}()
 
 	output_count := 0
-	for tuple := range output {
-		if !filter_func(tuple[1]) {
-			t.Errorf("%s should have failed", tuple[1])
+	for rows := range output {
+		for _, row := range rows {
+			if !filter_func(row[1]) {
+				t.Errorf("%s should have failed", row[1])
+			}
+			output_count++
 		}
-		output_count++
 	}
 
 	if output_count != n_records/3+1 {

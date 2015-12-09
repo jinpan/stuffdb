@@ -83,8 +83,8 @@ func Load(tablename string, s *schema.Schema, rank int) *Column {
 	return &c
 }
 
-func (c *Column) Scan() chan interface{} {
-	ch := make(chan interface{})
+func (c *Column) Scan() chan []interface{} {
+	ch := make(chan []interface{})
 
 	go func() {
 		defer close(ch)
@@ -143,7 +143,10 @@ func (c *Column) Insert(data <-chan interface{}, size int) {
 			}
 
 			for i := 0; i < old_copy; i++ {
-				col_ch <- <-ch
+				rows := <-ch
+				for _, row := range rows {
+					col_ch <- row
+				}
 			}
 			old_size -= old_copy
 

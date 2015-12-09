@@ -9,6 +9,7 @@ import (
 
 	"github.com/jinpan/stuffdb/datatypes"
 	"github.com/jinpan/stuffdb/schema"
+	"github.com/jinpan/stuffdb/settings"
 	"github.com/jinpan/stuffdb/tableview"
 )
 
@@ -152,7 +153,7 @@ func (w *InsertStore) Read(i, j int) (tableview.TableView, error) {
 		panic(open_err.Error())
 	}
 
-	ch := make(tableview.TableView)
+	ch := make(tableview.TableView, settings.ChanSize)
 	go w.read(f, i, j, ch) // takes care of closing the file when done
 	return ch, nil
 }
@@ -189,6 +190,6 @@ func (w *InsertStore) read(f *os.File, i, j int, ch tableview.TableView) {
 				panic("Invalid data type")
 			}
 		}
-		ch <- data
+		ch <- tableview.TableViewRows{data}
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/jinpan/stuffdb/column"
 	"github.com/jinpan/stuffdb/datatypes"
 	"github.com/jinpan/stuffdb/schema"
+	"github.com/jinpan/stuffdb/settings"
 	"github.com/jinpan/stuffdb/tableview"
 	"github.com/jinpan/stuffdb/writestore"
 )
@@ -104,36 +105,45 @@ func (t *Table) Store() {
 }
 
 func (t *Table) Scan(columns ...int) tableview.TableView {
-	ch := make(tableview.TableView, 1024)
+	ch := make(tableview.TableView, settings.ChanSize)
 
 	go func() {
 
-		cols := make([]chan interface{}, len(columns))
+		cols := make([]chan []interface{}, len(columns))
 
 		for idx, col_idx := range columns {
 			cols[idx] = t.columns[col_idx].Scan()
 		}
 
-		for c0 := range cols[0] {
-			row := make([]interface{}, len(columns))
-			row[0] = c0
+		for cols0 := range cols[0] {
+			rows := make(tableview.TableViewRows, len(cols0))
 
-			for idx := 1; idx < len(columns); idx++ {
-				row[idx] = <-cols[idx]
+			for row_idx, col_val := range cols0 {
+				rows[row_idx] = make(tableview.TableViewRow, len(columns))
+				rows[row_idx][0] = col_val
 			}
 
-			ch <- row
+			for col_idx := 1; col_idx < len(columns); col_idx++ {
+				col := <-cols[col_idx]
+				for row_idx, col_val := range col {
+					rows[row_idx][col_idx] = col_val
+				}
+			}
+
+			ch <- rows
 		}
 
 		// consult the insert store
 		insert_view := t.insert_store.ReadAll()
-		for insert_store_row := range insert_view {
-
-			row := make([]interface{}, len(columns))
-			for idx, col_idx := range columns {
-				row[idx] = insert_store_row[col_idx]
+		for full_rows := range insert_view {
+			rows := make(tableview.TableViewRows, len(full_rows))
+			for row_idx, full_row := range full_rows {
+				rows[row_idx] = make(tableview.TableViewRow, len(columns))
+				for col_idx, full_col_idx := range columns {
+					rows[row_idx][col_idx] = full_row[full_col_idx]
+				}
 			}
-			ch <- row
+			ch <- rows
 		}
 
 		close(ch)
@@ -156,11 +166,13 @@ func (t *Table) Insert(row []interface{}) error {
 			cache[i] = make([]interface{}, 1024)
 		}
 		count := 0
-		for row := range t.insert_store.ReadAll() {
-			for i := 0; i < t.Schema.GetLen(); i++ {
-				cache[i][count] = row[i]
+		for rows := range t.insert_store.ReadAll() {
+			for _, row := range rows {
+				for i := 0; i < t.Schema.GetLen(); i++ {
+					cache[i][count] = row[i]
+				}
+				count++
 			}
-			count++
 		}
 
 		for i := 0; i < t.Schema.GetLen(); i++ {

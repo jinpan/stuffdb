@@ -76,11 +76,13 @@ func TestReadAll(t *testing.T) {
 	}
 
 	count := 0
-	for datum := range actual {
-		if datum.(int64) != data[count] {
-			t.Errorf("Expected %d, got %d", data[count], datum.(int64))
+	for rows := range actual {
+		for _, datum := range rows {
+			if datum.(int64) != data[count] {
+				t.Errorf("Expected %d, got %d", data[count], datum.(int64))
+			}
+			count++
 		}
-		count++
 	}
 	if count != n_records {
 		t.Errorf("Expected length %d result, got %d", n_records, count)
@@ -101,11 +103,13 @@ func TestReadBatch(t *testing.T) {
 	}
 
 	count := 0
-	for datum := range actual {
-		if datum.(int64) != data[count] {
-			t.Errorf("Expected %d, got %d", data[count], datum.(int64))
+	for rows := range actual {
+		for _, datum := range rows {
+			if datum.(int64) != data[count] {
+				t.Errorf("Expected %d, got %d", data[count], datum.(int64))
+			}
+			count++
 		}
-		count++
 	}
 	if count != n_records {
 		t.Errorf("Expected length %d result, got %d", n_records, count)
@@ -139,11 +143,13 @@ func TestMoveInt64(t *testing.T) {
 		t.Errorf("Expected no error in batch read, got %s", err.Error())
 	}
 	count := 0
-	for datum := range actual {
-		if datum.(int64) != data[count] {
-			t.Errorf("Expected %d, got %d", data[count], datum.(int64))
+	for rows := range actual {
+		for _, datum := range rows {
+			if datum.(int64) != data[count] {
+				t.Errorf("Expected %d, got %d", data[count], datum.(int64))
+			}
+			count++
 		}
-		count++
 	}
 	if count != n_records {
 		t.Errorf("Expected length %d result, got %d", n_records, count)
@@ -185,11 +191,13 @@ func TestMergeInt64(t *testing.T) {
 		t.Errorf("Expected no error in batch read, got %s", err.Error())
 	}
 	count := 0
-	for datum := range actual {
-		if datum.(int64) != expected[count] {
-			t.Errorf("Expected %d, got %d", expected[count], datum.(int64))
+	for rows := range actual {
+		for _, datum := range rows {
+			if datum.(int64) != expected[count] {
+				t.Errorf("Expected %d, got %d", expected[count], datum.(int64))
+			}
+			count++
 		}
-		count++
 	}
 	if count != 2*n_records {
 		t.Errorf("Expected length %d result, got %d", 2*n_records, count)

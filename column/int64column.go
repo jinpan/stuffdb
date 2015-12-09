@@ -86,13 +86,17 @@ func (p *PhysicalInt64) Merge(o *PhysicalInt64, filename string) *PhysicalInt64 
 	ch := make(chan interface{})
 	go func() {
 		count := 0
-		for datum := range data1 {
-			ch <- datum
-			count++
+		for rows := range data1 {
+			for _, datum := range rows {
+				ch <- datum
+				count++
+			}
 		}
-		for datum := range data2 {
-			ch <- datum
-			count++
+		for rows := range data2 {
+			for _, datum := range rows {
+				ch <- datum
+				count++
+			}
 		}
 		close(ch)
 	}()
@@ -117,10 +121,14 @@ func (p *PhysicalInt64) ReadOne(i int) (interface{}, error) {
 		return nil, err
 	}
 
-	return <-ch, nil
+	rows := <-ch
+	if len(rows) != 1 {
+		panic("Wrong length")
+	}
+	return rows[0], nil
 }
 
-func (p *PhysicalInt64) ReadAll() <-chan interface{} {
+func (p *PhysicalInt64) ReadAll() <-chan []interface{} {
 	ch, err := p.Read(0, p.data_len)
 	if err != nil {
 		panic(err.Error())
@@ -129,7 +137,7 @@ func (p *PhysicalInt64) ReadAll() <-chan interface{} {
 }
 
 // exclusive
-func (p *PhysicalInt64) Read(i, j int) (<-chan interface{}, error) {
+func (p *PhysicalInt64) Read(i, j int) (<-chan []interface{}, error) {
 	if j < i {
 		return nil, fmt.Errorf("Second index must be at least as big as the first")
 	}
@@ -142,10 +150,7 @@ func (p *PhysicalInt64) Read(i, j int) (<-chan interface{}, error) {
 	n_records := j - i
 	datum_size := datatypes.INT64_TYPE.GetSize()
 
-	buf := make([]byte, datum_size*settings.BatchSize)
-	data := make([]int64, settings.BatchSize)
-
-	ch := make(chan interface{}, 1024)
+	ch := make(chan []interface{}, settings.ChanSize)
 
 	go func() {
 		cleanup := func() {
@@ -156,26 +161,28 @@ func (p *PhysicalInt64) Read(i, j int) (<-chan interface{}, error) {
 		}
 
 		read_fun := func(amount_bytes, offset_bytes int) {
-			buf_copy := buf[:amount_bytes]
-			data_copy := data[:amount_bytes/datum_size]
+			buf := make([]byte, amount_bytes)
+			data := make([]int64, amount_bytes/datum_size)
 
-			if _, read_err := f.ReadAt(buf_copy, int64(offset_bytes)); read_err != nil {
+			if _, read_err := f.ReadAt(buf, int64(offset_bytes)); read_err != nil {
 				cleanup()
 				panic(read_err.Error())
 			}
 
 			if bin_read_err := binary.Read(
-				bytes.NewReader(buf_copy),
+				bytes.NewReader(buf),
 				binary.LittleEndian,
-				data_copy,
+				data,
 			); bin_read_err != nil {
 				cleanup()
 				panic(bin_read_err.Error())
 			}
 
-			for _, datum := range data_copy {
-				ch <- datum
+			interface_data := make([]interface{}, len(data))
+			for i, datum := range data {
+				interface_data[i] = datum
 			}
+			ch <- interface_data
 		}
 
 		var k int

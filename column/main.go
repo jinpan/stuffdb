@@ -9,7 +9,7 @@ type Physical interface {
 
 	GetSize() int
 	ReadOne(int) (interface{}, error)
-	ReadAll() <-chan interface{}
-	Read(int, int) (<-chan interface{}, error)
+	ReadAll() <-chan []interface{}
+	Read(int, int) (<-chan []interface{}, error)
 	Move(string)
 }
