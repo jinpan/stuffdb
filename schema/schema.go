@@ -11,9 +11,9 @@ import (
 	Currently, we require schemas to be immutable
 */
 type Schema struct {
-	names          []string // names must be unique and lower case
-	types          []datatypes.DatumType
-	row_size_bytes int // naive size of the row if we store it varbatim
+	Names          []string              `json:"names"`
+	Types          []datatypes.DatumType `json:"types"`
+	Row_size_bytes int                   `json:"row_size_bytes"`
 }
 
 func NewSchema(names []string, types []datatypes.DatumType) (*Schema, error) {
@@ -44,28 +44,28 @@ func NewSchema(names []string, types []datatypes.DatumType) (*Schema, error) {
 		row_size_bytes += data_type.GetSize()
 	}
 	schema := &Schema{
-		names:          make([]string, len(names)),
-		types:          make([]datatypes.DatumType, len(types)),
-		row_size_bytes: row_size_bytes,
+		Names:          make([]string, len(names)),
+		Types:          make([]datatypes.DatumType, len(types)),
+		Row_size_bytes: row_size_bytes,
 	}
-	copy(schema.names, names)
-	copy(schema.types, types)
+	copy(schema.Names, names)
+	copy(schema.Types, types)
 
 	return schema, nil
 }
 
 func (s *Schema) GetRowSizeBytes() int {
-	return s.row_size_bytes
+	return s.Row_size_bytes
 }
 
 func (s *Schema) GetName(i int) string {
-	return s.names[i]
+	return s.Names[i]
 }
 
 func (s *Schema) GetType(i int) datatypes.DatumType {
-	return s.types[i]
+	return s.Types[i]
 }
 
 func (s *Schema) GetLen() int {
-	return len(s.names)
+	return len(s.Names)
 }

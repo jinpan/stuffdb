@@ -1,22 +1,25 @@
 package table
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"sync"
 
 	"github.com/jinpan/stuffdb/column"
+	"github.com/jinpan/stuffdb/datatypes"
 	"github.com/jinpan/stuffdb/schema"
 	"github.com/jinpan/stuffdb/tableview"
 	"github.com/jinpan/stuffdb/writestore"
 )
 
 type Table struct {
-	name         string
-	schema       *schema.Schema
+	Name         string         `json:"name"`
+	Schema       *schema.Schema `json:"schema"`
+	N_entries    int            `json:"n_entries"`
 	columns      []*column.Column
-	n_entries    int
 	insert_store *writestore.InsertStore
 }
 
@@ -44,11 +47,59 @@ func NewTable(name string, schema *schema.Schema) *Table {
 	}
 
 	return &Table{
-		name:         name,
-		schema:       schema,
+		Name:         name,
+		Schema:       schema,
 		columns:      columns,
-		n_entries:    0,
+		N_entries:    0,
 		insert_store: is,
+	}
+}
+
+func Load(name string) *Table {
+	filename := path.Join(
+		"/var",
+		"stuffdb",
+		name,
+		"metadata",
+	)
+
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err.Error())
+	}
+	var t Table
+	json.Unmarshal(bytes, &t)
+
+	t.Schema.Types = make([]datatypes.DatumType, t.Schema.GetLen())
+	for i := 0; i < t.Schema.GetLen(); i++ {
+		t.Schema.Types[i] = datatypes.INT64_TYPE
+	}
+
+	t.columns = make([]*column.Column, t.Schema.GetLen())
+	for i := 0; i < t.Schema.GetLen(); i++ {
+		t.columns[i] = column.Load(name, t.Schema, i)
+	}
+
+	t.insert_store = writestore.Load(name, t.Schema, t.N_entries%1024)
+
+	return &t
+}
+
+func (t *Table) Store() {
+	filename := path.Join(
+		"/var",
+		"stuffdb",
+		t.Name,
+		"metadata",
+	)
+
+	bytes, err := json.Marshal(t)
+	if err != nil {
+		panic(err.Error())
+	}
+	err = ioutil.WriteFile(filename, bytes, 0600)
+	if err != nil {
+		panic(err.Error())
 	}
 }
 
@@ -100,19 +151,19 @@ func (t *Table) Insert(row []interface{}) error {
 	if n_entries == 1024 { // move the inserts from the insertstore to columns
 		fmt.Println("MERGING")
 
-		cache := make([][]interface{}, t.schema.GetLen())
-		for i := 0; i < t.schema.GetLen(); i++ {
+		cache := make([][]interface{}, t.Schema.GetLen())
+		for i := 0; i < t.Schema.GetLen(); i++ {
 			cache[i] = make([]interface{}, 1024)
 		}
 		count := 0
 		for row := range t.insert_store.ReadAll() {
-			for i := 0; i < t.schema.GetLen(); i++ {
+			for i := 0; i < t.Schema.GetLen(); i++ {
 				cache[i][count] = row.Data[i]
 			}
 			count++
 		}
 
-		for i := 0; i < t.schema.GetLen(); i++ {
+		for i := 0; i < t.Schema.GetLen(); i++ {
 			ch := make(chan interface{}, 1024)
 			go func(ch chan interface{}) {
 				for _, datum := range cache[i] {
@@ -126,6 +177,9 @@ func (t *Table) Insert(row []interface{}) error {
 		t.insert_store.Clear()
 	}
 
+	t.N_entries++
+	t.Store()
+
 	return nil
 }
 
@@ -134,24 +188,24 @@ func (t *Table) BulkInsert(rows chan []interface{}, size int) {
 	col_store_size := size / 1024 * 1024
 	// insert_store_size := size % 1024
 
-	chans := make([]chan interface{}, t.schema.GetLen())
-	for i := 0; i < t.schema.GetLen(); i++ {
+	chans := make([]chan interface{}, t.Schema.GetLen())
+	for i := 0; i < t.Schema.GetLen(); i++ {
 		chans[i] = make(chan interface{})
 	}
 	go func() {
 		for i := 0; i < col_store_size; i++ {
 			row := <-rows
-			for j := 0; j < t.schema.GetLen(); j++ {
+			for j := 0; j < t.Schema.GetLen(); j++ {
 				chans[j] <- row[j]
 			}
 		}
-		for i := 0; i < t.schema.GetLen(); i++ {
+		for i := 0; i < t.Schema.GetLen(); i++ {
 			close(chans[i])
 		}
 	}()
 
 	var wg sync.WaitGroup
-	for i := 0; i < t.schema.GetLen(); i++ {
+	for i := 0; i < t.Schema.GetLen(); i++ {
 		wg.Add(1)
 		go func(i int) {
 			t.columns[i].Insert(chans[i], col_store_size)
@@ -169,8 +223,10 @@ func (t *Table) BulkInsert(rows chan []interface{}, size int) {
 			panic("Too many entries in the insert store")
 		}
 	}
+
+	t.Store()
 }
 
 func (t *Table) GetName() string {
-	return t.name
+	return t.Name
 }

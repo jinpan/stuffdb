@@ -3,8 +3,11 @@ package column
 import (
 	"container/list"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 
 	"github.com/jinpan/stuffdb/datatypes"
 	"github.com/jinpan/stuffdb/schema"
@@ -36,6 +39,48 @@ func NewColumn(tablename string, schema *schema.Schema, rank int) *Column {
 		rank:      rank,
 		primary:   list.New(),
 	}
+}
+
+func Load(tablename string, s *schema.Schema, rank int) *Column {
+	base_dir := filepath.Join(
+		"/var",
+		"stuffdb",
+		tablename,
+		fmt.Sprintf("c%d", rank),
+	)
+	c := Column{
+		tablename: tablename,
+		base_dir:  base_dir,
+		schema:    s,
+		rank:      rank,
+		primary:   list.New(),
+	}
+
+	files, err := ioutil.ReadDir(base_dir)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	file_map := make(map[int]string)
+	for _, fi := range files {
+		fname := fi.Name()
+		iname, err := strconv.Atoi(fname)
+		if err != nil {
+			panic(err.Error())
+		}
+		file_map[iname] = fname
+	}
+	sizes := make([]int, len(file_map))
+	for iname, _ := range file_map {
+		sizes = append(sizes, iname)
+	}
+	sort.Ints(sizes)
+	for _, size := range sizes {
+		col := LoadPhysicalInt64(filepath.Join(base_dir, file_map[size]), size)
+		c.primary.PushBack(col)
+	}
+
+	return &c
 }
 
 func (c *Column) Scan() chan interface{} {

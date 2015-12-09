@@ -100,3 +100,69 @@ func TestCreateTable(t *testing.T) {
 		}
 	}
 }
+
+func TestLoad(t *testing.T) {
+	setup(t)
+	defer cleanup(t)
+
+	table_name := "test_table"
+	s := makeSchema(t)
+
+	table := NewTable(table_name, s)
+	if table == nil {
+		t.Errorf("Unable to create new table")
+	}
+
+	n_tests := 2000
+
+	for i := 0; i < n_tests; i++ {
+		row := []interface{}{int64(i), int64(2 * i)}
+		insert_err := table.Insert(row)
+		if insert_err != nil {
+			t.Errorf(insert_err.Error())
+		}
+
+		tv := table.Scan(0, 1)
+
+		row_count := 0
+		for tr := range tv {
+			if len(tr.Data) != 2 {
+				t.Errorf("Expected data length to be 2, got %d", len(tr.Data))
+			}
+			if tr.Data[0] != int64(row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr.Data[0])
+			}
+			if tr.Data[1] != int64(2*row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr.Data[1])
+			}
+
+			row_count++
+		}
+
+		if row_count != i+1 {
+			t.Errorf("Expected %d rows, got %d", i+1, row_count)
+		}
+
+		table2 := Load("test_table")
+		tv = table2.Scan(0, 1)
+
+		row_count = 0
+		for tr := range tv {
+			if len(tr.Data) != 2 {
+				t.Errorf("Expected data length to be 2, got %d", len(tr.Data))
+			}
+			if tr.Data[0] != int64(row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", row_count, tr.Data[0])
+			}
+			if tr.Data[1] != int64(2*row_count) {
+				t.Errorf("Expected data[0] to be %d, got %d", 2*row_count, tr.Data[1])
+			}
+
+			row_count++
+		}
+
+		if row_count != i+1 {
+			t.Errorf("Expected %d rows, got %d", i+1, row_count)
+		}
+	}
+}

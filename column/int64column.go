@@ -21,9 +21,8 @@ const (
 )
 
 type PhysicalInt64 struct {
-	filename      string
-	data_len      int
-	physical_size int
+	filename string
+	data_len int
 }
 
 func NewPhysicalInt64(
@@ -61,6 +60,13 @@ func NewPhysicalInt64(
 		panic("size mismatch")
 	}
 
+	return &PhysicalInt64{
+		filename: filename,
+		data_len: size,
+	}
+}
+
+func LoadPhysicalInt64(filename string, size int) *PhysicalInt64 {
 	return &PhysicalInt64{
 		filename: filename,
 		data_len: size,

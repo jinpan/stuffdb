@@ -49,6 +49,24 @@ func NewInsertStore(tablename string, schema *schema.Schema) (*InsertStore, erro
 	}, nil
 }
 
+func Load(tablename string, s *schema.Schema, n_entries int) *InsertStore {
+	filename := path.Join(
+		"/var",
+		"stuffdb",
+		tablename,
+		"insert_buffer",
+	)
+
+	is := InsertStore{
+		tablename: tablename,
+		schema:    s,
+		n_entries: n_entries,
+		filename:  filename,
+	}
+
+	return &is
+}
+
 func (w *InsertStore) Clear() error {
 	rm_err := os.Remove(w.filename)
 	if rm_err != nil {
