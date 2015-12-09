@@ -1,8 +1,8 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"runtime"
 	"runtime/debug"
 	"time"
 
@@ -10,15 +10,18 @@ import (
 	"github.com/jinpan/stuffdb/tableview"
 )
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-
-func filter_census(t *table.Table) time.Duration {
+func filter_census(t *table.Table, c int) time.Duration {
 	cond := func(x interface{}) bool {
-		return x.(int64) == 10914
+		return x.(int64) == 0
 	}
 
+	cols := make([]int, c)
+	for i := 0; i < c; i++ {
+		cols[i] = i
+	}
+	tv := tableview.Filter(t.Scan(cols...), 0, cond)
+
 	start_time := time.Now()
-	tv := tableview.Filter(t.Scan(0, 1), 0, cond)
 	for rows := range tv {
 		for _, row := range rows {
 			fmt.Println(row)
@@ -29,23 +32,21 @@ func filter_census(t *table.Table) time.Duration {
 }
 
 func main() {
-	/*
-		flag.Parse()
-		if *cpuprofile != "" {
-			f, err := os.Create(*cpuprofile)
-			if err != nil {
-				log.Fatal(err)
-			}
-			pprof.StartCPUProfile(f)
-			defer pprof.StopCPUProfile()
-		}
-	*/
-	debug.SetGCPercent(1000)
+	debug.SetGCPercent(3200)
 	t := table.Load("test_census")
 
-	var total_time time.Duration
-	for i := 0; i < 10; i++ {
-		total_time += filter_census(t)
+	for i := 1; i < 256; i *= 2 {
+		var min_duration time.Duration
+		for j := 0; j < 3; j++ {
+			runtime.GC()
+			d := filter_census(t, i)
+			runtime.GC()
+			if min_duration == 0 {
+				min_duration = d
+			} else if d < min_duration {
+				min_duration = d
+			}
+		}
+		fmt.Println(i, min_duration)
 	}
-	fmt.Println("DURATION", total_time/10)
 }
